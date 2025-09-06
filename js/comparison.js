@@ -1,6 +1,4 @@
-// ===== МОДУЛЬ СРАВНЕНИЯ ТОВАРОВ =====
-// Этот модуль позволяет сравнивать до 4 товаров
-
+// modules/comparison.js - Модуль сравнения товаров
 class ComparisonModule {
     constructor() {
         this.maxItems = 4;
@@ -8,7 +6,6 @@ class ComparisonModule {
         this.notificationTimeout = null;
     }
 
-    // Инициализация модуля
     init() {
         this.loadFromStorage();
         this.updateBadge();
@@ -16,7 +13,6 @@ class ComparisonModule {
         console.log('Модуль сравнения инициализирован');
     }
 
-    // Загрузка из localStorage
     loadFromStorage() {
         try {
             const saved = localStorage.getItem('productComparison');
@@ -29,7 +25,6 @@ class ComparisonModule {
         }
     }
 
-    // Сохранение в localStorage
     saveToStorage() {
         try {
             localStorage.setItem('productComparison', JSON.stringify(this.comparedItems));
@@ -38,7 +33,6 @@ class ComparisonModule {
         }
     }
 
-    // Обновление счетчика в кнопке
     updateBadge() {
         const badge = document.getElementById('compare-badge');
         if (badge) {
@@ -47,11 +41,8 @@ class ComparisonModule {
         }
     }
 
-    // Настройка обработчиков событий
     setupEventListeners() {
-        // Обработчик для кликов по документам
         document.addEventListener('click', (e) => {
-            // Клик по чекбоксу сравнения
             if (e.target.classList.contains('compare-checkbox')) {
                 const article = e.target.dataset.article;
                 if (article) {
@@ -59,7 +50,6 @@ class ComparisonModule {
                 }
             }
 
-            // Клик по кнопке удаления из сравнения
             if (e.target.classList.contains('compare-remove')) {
                 const article = e.target.dataset.article;
                 if (article) {
@@ -69,9 +59,7 @@ class ComparisonModule {
         });
     }
 
-    // Добавление чекбоксов на карточки товаров
     addCheckboxesToProducts() {
-        // Ждем немного, чтобы карточки успели отрендериться
         setTimeout(() => {
             const cards = document.querySelectorAll('.card');
             cards.forEach(card => {
@@ -92,28 +80,23 @@ class ComparisonModule {
         }, 100);
     }
 
-    // Добавление товара в сравнение
     addToComparison(productArticle) {
-        // Проверяем лимит
         if (this.comparedItems.length >= this.maxItems) {
             this.showNotification(`Можно сравнивать не более ${this.maxItems} товаров`, 'warning');
             return false;
         }
 
-        // Проверяем, не добавлен ли уже товар
         if (this.comparedItems.includes(productArticle)) {
             this.removeFromComparison(productArticle);
             return false;
         }
 
-        // Проверяем существование товара
         const product = allProducts.find(p => p.Артикул === productArticle);
         if (!product) {
             this.showNotification('Товар не найден', 'error');
             return false;
         }
 
-        // Добавляем товар
         this.comparedItems.push(productArticle);
         this.saveToStorage();
         this.updateBadge();
@@ -127,19 +110,15 @@ class ComparisonModule {
         return true;
     }
 
-    // Удаление товара из сравнения
     removeFromComparison(productArticle) {
         this.comparedItems = this.comparedItems.filter(item => item !== productArticle);
         this.saveToStorage();
         this.updateBadge();
         this.updateProductCheckbox(productArticle, false);
-
         this.showNotification('Товар удален из сравнения', 'info');
     }
 
-    // Очистка всего сравнения
     clearComparison() {
-        // Снимаем галочки со всех чекбоксов
         this.comparedItems.forEach(article => {
             this.updateProductCheckbox(article, false);
         });
@@ -148,7 +127,6 @@ class ComparisonModule {
         this.saveToStorage();
         this.updateBadge();
 
-        // Закрываем модальное окно, если открыто
         const modal = bootstrap.Modal.getInstance(document.getElementById('compareModal'));
         if (modal) {
             modal.hide();
@@ -157,7 +135,6 @@ class ComparisonModule {
         this.showNotification('Сравнение очищено', 'info');
     }
 
-    // Обновление состояния чекбокса
     updateProductCheckbox(article, checked) {
         const checkbox = document.querySelector(`.compare-checkbox[data-article="${article}"]`);
         if (checkbox) {
@@ -165,14 +142,12 @@ class ComparisonModule {
         }
     }
 
-    // Показ сравнения
     showComparison() {
         if (this.comparedItems.length === 0) {
             this.showNotification('Добавьте товары для сравнения', 'warning');
             return;
         }
 
-        // Получаем товары для сравнения
         const productsToCompare = this.comparedItems.map(article => 
             allProducts.find(p => p.Артикул === article)
         ).filter(Boolean);
@@ -182,15 +157,11 @@ class ComparisonModule {
             return;
         }
 
-        // Создаем таблицу сравнения
         this.renderComparisonTable(productsToCompare);
-
-        // Показываем модальное окно
         const modal = new bootstrap.Modal(document.getElementById('compareModal'));
         modal.show();
     }
 
-    // Рендеринг таблицы сравнения
     renderComparisonTable(products) {
         const container = document.getElementById('compare-container');
         
@@ -199,7 +170,6 @@ class ComparisonModule {
             return;
         }
 
-        // Основные характеристики для сравнения
         const features = [
             { name: 'Изображение', key: 'image' },
             { name: 'Модель', key: 'Модель' },
@@ -238,7 +208,6 @@ class ComparisonModule {
                     <tbody>
         `;
 
-        // Добавляем строки с характеристиками
         features.forEach(feature => {
             html += `<tr><td class="compare-feature">${feature.name}</td>`;
             
@@ -280,15 +249,12 @@ class ComparisonModule {
         container.innerHTML = html;
     }
 
-    // Показать уведомление
     showNotification(message, type = 'info') {
-        // Удаляем предыдущее уведомление
         const existingNotification = document.querySelector('.compare-notification');
         if (existingNotification) {
             existingNotification.remove();
         }
 
-        // Создаем новое уведомление
         const notification = document.createElement('div');
         notification.className = `compare-notification ${type}`;
         notification.innerHTML = `
@@ -300,7 +266,6 @@ class ComparisonModule {
 
         document.body.appendChild(notification);
 
-        // Автоматическое скрытие через 3 секунды
         clearTimeout(this.notificationTimeout);
         this.notificationTimeout = setTimeout(() => {
             if (notification.parentElement) {
@@ -313,7 +278,7 @@ class ComparisonModule {
 // Создаем экземпляр модуля
 const comparisonModule = new ComparisonModule();
 
-// Глобальные функции для вызова из HTML
+// Глобальные функции для HTML
 function showComparison() {
     comparisonModule.showComparison();
 }
@@ -322,7 +287,6 @@ function clearComparison() {
     comparisonModule.clearComparison();
 }
 
-// Функция для добавления в сравнение (можно вызывать из карточек товаров)
 function addToComparison(article) {
     comparisonModule.addToComparison(article);
 }

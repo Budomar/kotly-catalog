@@ -157,6 +157,35 @@ def main():
         # Добавляем статус
         merged_df['Статус'] = merged_df['В_наличии'].apply(lambda x: 'В наличии' if x > 0 else 'Нет в наличии')
         
+        # Добавляем поля для рекомендаций
+        def get_product_category(model):
+            model_str = str(model).lower()
+            if 'meteor' in model_str:
+                return 'meteor'
+            elif 'laggartt' in model_str or 'газ' in model_str:
+                return 'laggartt'
+            elif 'devotion' in model_str:
+                return 'devotion'
+            elif 'mk' in model_str:
+                return 'mk'
+            else:
+                return 'other'
+        
+        def get_power_level(power):
+            try:
+                power_val = int(power)
+                if power_val <= 20:
+                    return 'low'
+                elif power_val <= 30:
+                    return 'medium'
+                else:
+                    return 'high'
+            except:
+                return 'unknown'
+        
+        merged_df['Категория'] = merged_df['Модель'].apply(get_product_category)
+        merged_df['Уровень_мощности'] = merged_df['Мощность'].apply(get_power_level)
+        
         # Конвертируем в JSON
         result = merged_df.to_dict('records')
         
@@ -174,6 +203,7 @@ def main():
             print(f"   Цена: {item['Цена']} руб., Наличие: {item['В_наличии']} шт.")
             print(f"   Контуры: {item['Контуры']}, Мощность: {item['Мощность']} кВт, Wi-Fi: {item['WiFi']}")
             print(f"   Фото: {item['Фото']}")
+            print(f"   Категория: {item['Категория']}, Уровень мощности: {item['Уровень_мощности']}")
             
     except Exception as e:
         print(f"❌ Ошибка: {e}")
@@ -186,4 +216,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

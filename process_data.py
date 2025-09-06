@@ -161,6 +161,17 @@ def main():
             
             return power, contours, wifi
         
+        # Применяем функции к каждой модели
+        merged_df[['Мощность', 'Контуры', 'WiFi']] = merged_df['Модель'].apply(
+            lambda x: pd.Series(extract_info(x))
+        )
+        
+        # Добавляем фото
+        merged_df['Фото'] = merged_df['Модель'].apply(get_image_for_model)
+        
+        # Добавляем статус
+        merged_df['Статус'] = merged_df['В_наличии'].apply(lambda x: 'В наличии' if x > 0 else 'Нет в наличии')
+        
         # Добавляем поля для рекомендаций
         def get_product_category(model):
             model_str = str(model).lower()

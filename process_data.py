@@ -125,37 +125,41 @@ def main():
         def extract_info(model):
             model_str = str(model).upper()
             
-            # Мощность (ищем числа)
-            power_match = re.search(r'(\d+)\s*(кВт|KW|C|H|С|Х)', model_str)
-            power = power_match.group(1) if power_match else "Не указана"
+            # Словарь соответствий серий и форматов мощности
+            power_patterns = [
+                (r'(T2|M6|M30|B20|B30|C30|C11|Q3)[^\d]*(\d+)', 2),  # METEOR T2 45 H
+                (r'(\d+)\s*(C|H|С|Х|кВт|KW)', 1),  # 24 C, 28 H
+                (r'ГАЗ\s*6000\s*(\d+)', 1),  # LaggarTT ГАЗ 6000 24 С
+                (r'MK\s*(\d+)', 1),  # MK 250, MK 350
+                (r'LL1GBQ(\d+)', 1),  # Devotion LL1GBQ30
+                (r'LN1GBQ(\d+)', 1),  # Devotion LN1GBQ60
+            ]
             
-            # Контуры - ИСПРАВЛЕНО: "C" - двухконтурный, "H" - одноконтурный
-            if ' C' in model_str or 'С ' in model_str:
+            power = "Не указана"
+            for pattern, group in power_patterns:
+                match = re.search(pattern, model_str)
+                if match:
+                    power = match.group(group)
+                    break
+            
+            # Если не нашли по шаблонам, ищем любое подходящее число
+            if power == "Не указана":
+                numbers = re.findall(r'\b(\d{2,3})\b', model_str)
+                if numbers:
+                    power = numbers[0]
+            
+            # Контуры
+            if any(x in model_str for x in [' C', 'С ', 'C)', '-C', ' C ', ' С ']):
                 contours = "Двухконтурный"
-            elif ' H' in model_str or 'Н ' in model_str:
+            elif any(x in model_str for x in [' H', 'Н ', 'H)', '-H', ' H ', ' Н ']):
                 contours = "Одноконтурный"
             else:
-                # Для напольных котлов и других определяем по контексту
-                if 'НАПОЛЬНЫЙ' in model_str or 'MK' in model_str:
-                    contours = "Одноконтурный"
-                else:
-                    contours = "Двухконтурный"  # по умолчанию для настенных
+                contours = "Двухконтурный" if 'НАСТЕННЫЙ' in model_str else "Одноконтурный"
             
             # Wi-Fi
             wifi = "Да" if any(x in model_str for x in ['WI-FI', 'WIFI', 'ВАЙ-ФАЙ', 'WI FI']) else "Нет"
             
             return power, contours, wifi
-        
-        # Применяем функции к каждой модели
-        merged_df[['Мощность', 'Контуры', 'WiFi']] = merged_df['Модель'].apply(
-            lambda x: pd.Series(extract_info(x))
-        )
-        
-        # Добавляем фото
-        merged_df['Фото'] = merged_df['Модель'].apply(get_image_for_model)
-        
-        # Добавляем статус
-        merged_df['Статус'] = merged_df['В_наличии'].apply(lambda x: 'В наличии' if x > 0 else 'Нет в наличии')
         
         # Добавляем поля для рекомендаций
         def get_product_category(model):

@@ -308,7 +308,7 @@ function checkStorageStatus() {
 }
 
 // Инициализация модулей
-function initModules() {
+async function initModules() {
     // Проверяем доступность localStorage
     if (!checkStorageStatus()) {
         console.warn('LocalStorage недоступен. Функции сохранения отключены.');
@@ -337,5 +337,10 @@ function initModules() {
     // Инициализируем touch-интерфейс
     if (typeof touchInterface !== 'undefined') {
         touchInterface.init();
+    }
+
+    // Инициализируем систему уведомлений
+    if (typeof notificationSystem !== 'undefined') {
+        await notificationSystem.init();
     }
 }

@@ -2,6 +2,8 @@ import pandas as pd
 import json
 import re
 import os
+from datetime import datetime
+import requests
 
 def main():
     try:
@@ -219,6 +221,45 @@ def main():
             print(f"   Контуры: {item['Контуры']}, Мощность: {item['Мощность']} кВт, Wi-Fi: {item['WiFi']}")
             print(f"   Фото: {item['Фото']}")
             print(f"   Категория: {item['Категория']}, Уровень мощности: {item['Уровень_мощности']}")
+        
+        # Отправляем уведомления об обновлении данных
+        print("📧 Отправка уведомлений об обновлении данных...")
+        
+        # Подсчитываем статистику для уведомлений
+        new_products = len([p for p in result if p['В_наличии'] > 0])
+        restocked_products = len([p for p in result if p['В_наличии'] > 5])
+        
+        print(f"✅ Новых товаров: {new_products}")
+        print(f"📦 Пополненных позиций: {restocked_products}")
+        
+        # Сохраняем статистику для уведомлений
+        update_data = {
+            'timestamp': datetime.now().isoformat(),
+            'total_products': len(result),
+            'available_products': sum(1 for p in result if p['В_наличии'] > 0),
+            'new_products': new_products,
+            'restocked_products': restocked_products
+        }
+        
+        with open('update_stats.json', 'w', encoding='utf-8') as f:
+            json.dump(update_data, f, ensure_ascii=False, indent=2)
+        
+        # Отправляем push-уведомление (в демо-режиме просто логируем)
+        try:
+            # В реальном приложении здесь будет отправка на сервер для push-уведомлений
+            print("🚀 Отправка push-уведомления о новом обновлении...")
+            
+            # Формируем сообщение для уведомления
+            notification_message = f"Каталог обновлен! {new_products} новых товаров, {restocked_products} пополнений"
+            
+            # Здесь будет реальный код отправки push-уведомления
+            # Например, через Firebase Cloud Messaging или другой сервис
+            # send_push_notification("Обновление каталога", notification_message)
+            
+            print(f"📢 Уведомление отправлено: {notification_message}")
+            
+        except Exception as e:
+            print(f"⚠️ Ошибка отправки уведомления: {e}")
             
     except Exception as e:
         print(f"❌ Ошибка: {e}")

@@ -13,21 +13,29 @@ class NotificationSystem {
             orders: true,
             system: true
         };
+        this.initialized = false;
     }
 
     // Инициализация модуля
     async init() {
-        if (!this.isSupported) {
-            console.warn('Уведомления не поддерживаются браузером');
-            return;
-        }
-
-        this.loadSettings();
-        this.setupEventListeners();
-        this.checkPermission();
-        await this.registerServiceWorker();
+        if (this.initialized) return;
         
-        console.log('Система уведомлений инициализирована');
+        try {
+            if (!this.isSupported) {
+                console.warn('Уведомления не поддерживаются браузером');
+                return;
+            }
+
+            this.loadSettings();
+            this.setupEventListeners();
+            this.checkPermission();
+            await this.registerServiceWorker();
+            
+            this.initialized = true;
+            console.log('Система уведомлений инициализирована');
+        } catch (error) {
+            console.error('Ошибка инициализации системы уведомлений:', error);
+        }
     }
 
     // Загрузка настроек из localStorage
@@ -44,6 +52,7 @@ class NotificationSystem {
             }
         } catch (error) {
             console.error('Ошибка загрузки настроек уведомлений:', error);
+            this.notifications = [];
         }
     }
 
@@ -317,62 +326,73 @@ class NotificationSystem {
     showPushNotification(title, message, type = 'info') {
         if (this.permission !== 'granted') return;
 
-        // Показываем браузерное уведомление
-        if (this.isSupported) {
-            const notification = new Notification(title, {
-                body: message,
-                icon: '/images/logo.png',
-                tag: 'laggartt-notification',
-                requireInteraction: false
-            });
+        try {
+            // Показываем браузерное уведомление
+            if (this.isSupported) {
+                const notification = new Notification(title, {
+                    body: message,
+                    icon: '/images/logo.png',
+                    tag: 'laggartt-notification',
+                    requireInteraction: false
+                });
 
-            notification.onclick = () => {
-                window.focus();
-                notification.close();
-            };
+                notification.onclick = () => {
+                    window.focus();
+                    notification.close();
+                };
 
-            setTimeout(() => notification.close(), 5000);
+                setTimeout(() => notification.close(), 5000);
+            }
+
+            // Показываем внутреннее уведомление
+            this.showInternalNotification(title, message, type);
+        } catch (error) {
+            console.error('Ошибка показа push-уведомления:', error);
         }
-
-        // Показываем внутреннее уведомление
-        this.showInternalNotification(title, message, type);
     }
 
     // Показ внутреннего уведомления
     showInternalNotification(title, message, type) {
-        const notification = document.createElement('div');
-        notification.className = `push-notification ${type}`;
-        notification.innerHTML = `
-            <div class="push-notification-content">
-                <div class="push-notification-icon">
-                    <i class="bi ${this.getNotificationIcon(type)}"></i>
+        try {
+            const notification = document.createElement('div');
+            notification.className = `push-notification ${type}`;
+            notification.innerHTML = `
+                <div class="push-notification-content">
+                    <div class="push-notification-icon">
+                        <i class="bi ${this.getNotificationIcon(type)}"></i>
+                    </div>
+                    <div class="push-notification-info">
+                        <div class="push-notification-title">${title}</div>
+                        <div class="push-notification-message">${message}</div>
+                    </div>
+                    <button class="push-notification-close">
+                        <i class="bi bi-x"></i>
+                    </button>
                 </div>
-                <div class="push-notification-info">
-                    <div class="push-notification-title">${title}</div>
-                    <div class="push-notification-message">${message}</div>
-                </div>
-                <button class="push-notification-close">
-                    <i class="bi bi-x"></i>
-                </button>
-            </div>
-        `;
+            `;
 
-        document.body.appendChild(notification);
+            document.body.appendChild(notification);
 
-        // Обработчик закрытия
-        notification.querySelector('.push-notification-close').addEventListener('click', () => {
-            notification.remove();
-        });
-
-        // Показываем уведомление
-        setTimeout(() => notification.classList.add('visible'), 100);
-
-        // Автоматическое скрытие
-        setTimeout(() => {
-            if (notification.parentElement) {
-                notification.remove();
+            // Обработчик закрытия
+            const closeBtn = notification.querySelector('.push-notification-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    notification.remove();
+                });
             }
-        }, 5000);
+
+            // Показываем уведомление
+            setTimeout(() => notification.classList.add('visible'), 100);
+
+            // Автоматическое скрытие
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        } catch (error) {
+            console.error('Ошибка показа внутреннего уведомления:', error);
+        }
     }
 
     // Получение иконки для типа уведомления
@@ -400,35 +420,39 @@ class NotificationSystem {
 
     // Показ запроса разрешения
     showPermissionRequest() {
-        const existingRequest = document.querySelector('.notification-permission');
-        if (existingRequest) return;
+        try {
+            const existingRequest = document.querySelector('.notification-permission');
+            if (existingRequest) return;
 
-        const request = document.createElement('div');
-        request.className = 'notification-permission';
-        request.innerHTML = `
-            <div class="notification-permission-content">
-                <div class="notification-permission-header">
-                    <div class="notification-permission-icon">
-                        <i class="bi bi-bell"></i>
+            const request = document.createElement('div');
+            request.className = 'notification-permission';
+            request.innerHTML = `
+                <div class="notification-permission-content">
+                    <div class="notification-permission-header">
+                        <div class="notification-permission-icon">
+                            <i class="bi bi-bell"></i>
+                        </div>
+                        <h3 class="notification-permission-title">Разрешить уведомления?</h3>
                     </div>
-                    <h3 class="notification-permission-title">Разрешить уведомления?</h3>
+                    <p class="notification-permission-text">
+                        Получайте уведомления о наличии товаров, акциях и статусе заказов
+                    </p>
+                    <div class="notification-permission-actions">
+                        <button class="notification-permission-btn secondary later-notifications">
+                            Позже
+                        </button>
+                        <button class="notification-permission-btn primary enable-notifications">
+                            Разрешить
+                        </button>
+                    </div>
                 </div>
-                <p class="notification-permission-text">
-                    Получайте уведомления о наличии товаров, акциях и статусе заказов
-                </p>
-                <div class="notification-permission-actions">
-                    <button class="notification-permission-btn secondary later-notifications">
-                        Позже
-                    </button>
-                    <button class="notification-permission-btn primary enable-notifications">
-                        Разрешить
-                    </button>
-                </div>
-            </div>
-        `;
+            `;
 
-        document.body.appendChild(request);
-        setTimeout(() => request.classList.add('visible'), 100);
+            document.body.appendChild(request);
+            setTimeout(() => request.classList.add('visible'), 100);
+        } catch (error) {
+            console.error('Ошибка показа запроса разрешения:', error);
+        }
     }
 
     // Скрытие запроса разрешения
@@ -441,231 +465,276 @@ class NotificationSystem {
 
     // Обновление бейджа уведомлений
     updateNotificationBadge() {
-        const unreadCount = this.notifications.filter(n => !n.read).length;
-        const badge = document.querySelector('.notification-badge');
-        const bell = document.querySelector('.notification-nav-btn');
+        try {
+            const unreadCount = this.notifications.filter(n => !n.read).length;
+            const badge = document.querySelector('.notification-badge');
+            const bell = document.querySelector('.notification-nav-btn');
 
-        if (badge) {
-            badge.textContent = unreadCount;
-            badge.style.display = unreadCount > 0 ? 'flex' : 'none';
-        }
+            if (badge) {
+                badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                badge.style.display = unreadCount > 0 ? 'flex' : 'none';
+                
+                // Анимация
+                if (unreadCount > 0) {
+                    badge.classList.add('pulse-animation');
+                    setTimeout(() => badge.classList.remove('pulse-animation'), 500);
+                }
+            }
 
-        if (bell) {
-            bell.classList.toggle('has-notifications', unreadCount > 0);
+            if (bell) {
+                bell.classList.toggle('has-notifications', unreadCount > 0);
+            }
+        } catch (error) {
+            console.error('Ошибка обновления бейджа уведомлений:', error);
         }
     }
 
     // Рендер выпадающего списка уведомлений
     renderNotificationsDropdown() {
-        const dropdown = document.querySelector('.notification-dropdown-body');
-        if (!dropdown) return;
+        try {
+            const dropdown = document.querySelector('.notification-dropdown-body');
+            if (!dropdown) return;
 
-        const unreadNotifications = this.notifications.filter(n => !n.read);
-        const recentNotifications = this.notifications.slice(0, 10);
+            const unreadNotifications = this.notifications.filter(n => !n.read);
+            const recentNotifications = this.notifications.slice(0, 10);
 
-        dropdown.innerHTML = recentNotifications.length > 0 ? 
-            recentNotifications.map(notification => `
-                <div class="notification-dropdown-item ${notification.read ? '' : 'unread'}" 
-                     onclick="notificationSystem.markAsRead('${notification.timestamp}')">
-                    <div class="notification-dropdown-content">
-                        <div class="notification-dropdown-icon">
-                            <i class="bi ${this.getNotificationIcon(notification.type)}"></i>
-                        </div>
-                        <div class="notification-dropdown-text">
-                            <div class="notification-dropdown-message">${notification.message}</div>
-                            <div class="notification-dropdown-time">${this.formatTime(notification.timestamp)}</div>
+            dropdown.innerHTML = recentNotifications.length > 0 ? 
+                recentNotifications.map(notification => `
+                    <div class="notification-dropdown-item ${notification.read ? '' : 'unread'}" 
+                         onclick="notificationSystem.markAsRead('${notification.timestamp}')">
+                        <div class="notification-dropdown-content">
+                            <div class="notification-dropdown-icon">
+                                <i class="bi ${this.getNotificationIcon(notification.type)}"></i>
+                            </div>
+                            <div class="notification-dropdown-text">
+                                <div class="notification-dropdown-message">${notification.message}</div>
+                                <div class="notification-dropdown-time">${this.formatTime(notification.timestamp)}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('') : `
-                <div class="notification-dropdown-item">
-                    <div class="notification-dropdown-content">
-                        <div class="notification-dropdown-text">
-                            <div class="notification-dropdown-message">Нет уведомлений</div>
+                `).join('') : `
+                    <div class="notification-dropdown-item">
+                        <div class="notification-dropdown-content">
+                            <div class="notification-dropdown-text">
+                                <div class="notification-dropdown-message">Нет уведомлений</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
+                `;
+        } catch (error) {
+            console.error('Ошибка рендера выпадающего списка:', error);
+        }
     }
 
     // Форматирование времени
     formatTime(timestamp) {
-        const now = new Date().getTime();
-        const diff = now - timestamp;
-        const minutes = Math.floor(diff / 60000);
-        const hours = Math.floor(diff / 3600000);
-        const days = Math.floor(diff / 86400000);
+        try {
+            const now = new Date().getTime();
+            const diff = now - timestamp;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
 
-        if (minutes < 1) return 'только что';
-        if (minutes < 60) return `${minutes} мин назад`;
-        if (hours < 24) return `${hours} ч назад`;
-        if (days < 7) return `${days} дн назад`;
-        
-        return new Date(timestamp).toLocaleDateString('ru-RU');
+            if (minutes < 1) return 'только что';
+            if (minutes < 60) return `${minutes} мин назад`;
+            if (hours < 24) return `${hours} ч назад`;
+            if (days < 7) return `${days} дн назад`;
+            
+            return new Date(timestamp).toLocaleDateString('ru-RU');
+        } catch (error) {
+            return '';
+        }
     }
 
     // Отметка как прочитанное
     markAsRead(timestamp) {
-        const notification = this.notifications.find(n => n.timestamp == timestamp);
-        if (notification) {
-            notification.read = true;
-            this.saveSettings();
-            this.updateNotificationBadge();
-            this.renderNotificationsDropdown();
+        try {
+            const notification = this.notifications.find(n => n.timestamp == timestamp);
+            if (notification) {
+                notification.read = true;
+                this.saveSettings();
+                this.updateNotificationBadge();
+                this.renderNotificationsDropdown();
+            }
+        } catch (error) {
+            console.error('Ошибка отметки как прочитанного:', error);
         }
     }
 
     // Отметка все как прочитанные
     markAllAsRead() {
-        this.notifications.forEach(notification => {
-            notification.read = true;
-        });
-        this.saveSettings();
-        this.updateNotificationBadge();
-        this.renderNotificationsDropdown();
+        try {
+            this.notifications.forEach(notification => {
+                notification.read = true;
+            });
+            this.saveSettings();
+            this.updateNotificationBadge();
+            this.renderNotificationsDropdown();
+        } catch (error) {
+            console.error('Ошибка отметки всех как прочитанных:', error);
+        }
     }
 
     // Вспомогательная функция для преобразования ключа
     urlBase64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding)
-            .replace(/\-/g, '+')
-            .replace(/_/g, '/');
+        try {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/\-/g, '+')
+                .replace(/_/g, '/');
 
-        const rawData = window.atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
 
-        for (let i = 0; i < rawData.length; ++i) {
-            outputArray[i] = rawData.charCodeAt(i);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        } catch (error) {
+            console.error('Ошибка преобразования ключа:', error);
+            return new Uint8Array();
         }
-        return outputArray;
     }
 
     // Создание UI для уведомлений
     createNotificationUI() {
-        // Создаем кнопку уведомлений в навигации
-        const navItem = document.createElement('div');
-        navItem.className = 'notification-nav-item';
-        navItem.innerHTML = `
-            <button class="notification-nav-btn" onclick="notificationSystem.toggleNotifications()">
-                <i class="bi bi-bell"></i>
-                <span class="notification-badge" style="display: none;">0</span>
-            </button>
-            <div class="notification-dropdown">
-                <div class="notification-dropdown-header">
-                    <h4 class="notification-dropdown-title">Уведомления</h4>
-                    <button class="notification-dropdown-clear" onclick="notificationSystem.markAllAsRead()">
-                        Очистить
-                    </button>
+        try {
+            // Создаем кнопку уведомлений в навигации
+            const navItem = document.createElement('div');
+            navItem.className = 'notification-nav-item';
+            navItem.innerHTML = `
+                <button class="notification-nav-btn" onclick="notificationSystem.toggleNotifications()">
+                    <i class="bi bi-bell"></i>
+                    <span class="notification-badge" style="display: none;">0</span>
+                </button>
+                <div class="notification-dropdown">
+                    <div class="notification-dropdown-header">
+                        <h4 class="notification-dropdown-title">Уведомления</h4>
+                        <button class="notification-dropdown-clear" onclick="notificationSystem.markAllAsRead()">
+                            Очистить
+                        </button>
+                    </div>
+                    <div class="notification-dropdown-body"></div>
+                    <div class="notification-dropdown-footer">
+                        <a href="#" class="notification-dropdown-view-all">Все уведомления</a>
+                    </div>
                 </div>
-                <div class="notification-dropdown-body"></div>
-                <div class="notification-dropdown-footer">
-                    <a href="#" class="notification-dropdown-view-all">Все уведомления</a>
-                </div>
-            </div>
-        `;
+            `;
 
-        // Добавляем в навигацию
-        const navbar = document.querySelector('.navbar-nav');
-        if (navbar) {
-            navbar.appendChild(navItem);
+            // Добавляем в навигацию
+            const navbar = document.querySelector('.navbar-nav');
+            if (navbar) {
+                navbar.appendChild(navItem);
+            }
+
+            // Рендерим уведомления
+            this.renderNotificationsDropdown();
+            this.updateNotificationBadge();
+        } catch (error) {
+            console.error('Ошибка создания UI уведомлений:', error);
         }
-
-        // Рендерим уведомления
-        this.renderNotificationsDropdown();
-        this.updateNotificationBadge();
     }
 
     // Переключение отображения уведомлений
     toggleNotifications() {
-        const dropdown = document.querySelector('.notification-dropdown');
-        dropdown.classList.toggle('visible');
-        
-        // Отмечаем все как прочитанные при открытии
-        if (dropdown.classList.contains('visible')) {
-            this.markAllAsRead();
+        try {
+            const dropdown = document.querySelector('.notification-dropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('visible');
+                
+                // Отмечаем все как прочитанные при открытии
+                if (dropdown.classList.contains('visible')) {
+                    this.markAllAsRead();
+                }
+            }
+        } catch (error) {
+            console.error('Ошибка переключения уведомлений:', error);
         }
     }
 
     // Создание секции настроек уведомлений
     createSettingsSection() {
-        const settingsSection = document.createElement('div');
-        settingsSection.className = 'notification-settings';
-        settingsSection.innerHTML = `
-            <div class="notification-settings-header">
-                <h3 class="notification-settings-title">
-                    <i class="bi bi-bell"></i>
-                    Настройки уведомлений
-                </h3>
-            </div>
-            <div class="notification-settings-grid">
-                <div class="notification-setting-group">
-                    <h4 class="notification-setting-title">
-                        <i class="bi bi-box-seam"></i>
-                        Товары
-                    </h4>
-                    <div class="notification-setting-item">
-                        <div class="notification-setting-label">
-                            <div class="notification-setting-name">Наличие товаров</div>
-                            <div class="notification-setting-desc">Уведомлять о поступлении товаров</div>
+        try {
+            const settingsSection = document.createElement('div');
+            settingsSection.className = 'notification-settings';
+            settingsSection.innerHTML = `
+                <div class="notification-settings-header">
+                    <h3 class="notification-settings-title">
+                        <i class="bi bi-bell"></i>
+                        Настройки уведомлений
+                    </h3>
+                </div>
+                <div class="notification-settings-grid">
+                    <div class="notification-setting-group">
+                        <h4 class="notification-setting-title">
+                            <i class="bi bi-box-seam"></i>
+                            Товары
+                        </h4>
+                        <div class="notification-setting-item">
+                            <div class="notification-setting-label">
+                                <div class="notification-setting-name">Наличие товаров</div>
+                                <div class="notification-setting-desc">Уведомлять о поступлении товаров</div>
+                            </div>
+                            <label class="notification-switch">
+                                <input type="checkbox" class="notification-toggle" data-setting="stock" ${this.notificationSettings.stock ? 'checked' : ''}>
+                                <span class="notification-slider"></span>
+                            </label>
                         </div>
-                        <label class="notification-switch">
-                            <input type="checkbox" class="notification-toggle" data-setting="stock" ${this.notificationSettings.stock ? 'checked' : ''}>
-                            <span class="notification-slider"></span>
-                        </label>
+                        <div class="notification-setting-item">
+                            <div class="notification-setting-label">
+                                <div class="notification-setting-name">Изменение цен</div>
+                                <div class="notification-setting-desc">Уведомлять о снижении цен</div>
+                            </div>
+                            <label class="notification-switch">
+                                <input type="checkbox" class="notification-toggle" data-setting="price" ${this.notificationSettings.price ? 'checked' : ''}>
+                                <span class="notification-slider"></span>
+                            </label>
+                        </div>
                     </div>
-                    <div class="notification-setting-item">
-                        <div class="notification-setting-label">
-                            <div class="notification-setting-name">Изменение цен</div>
-                            <div class="notification-setting-desc">Уведомлять о снижении цен</div>
+                    
+                    <div class="notification-setting-group">
+                        <h4 class="notification-setting-title">
+                            <i class="bi bi-percent"></i>
+                            Акции
+                        </h4>
+                        <div class="notification-setting-item">
+                            <div class="notification-setting-label">
+                                <div class="notification-setting-name">Акции и скидки</div>
+                                <div class="notification-setting-desc">Уведомлять о специальных предложениях</div>
+                            </div>
+                            <label class="notification-switch">
+                                <input type="checkbox" class="notification-toggle" data-setting="promotions" ${this.notificationSettings.promotions ? 'checked' : ''}>
+                                <span class="notification-slider"></span>
+                            </label>
                         </div>
-                        <label class="notification-switch">
-                            <input type="checkbox" class="notification-toggle" data-setting="price" ${this.notificationSettings.price ? 'checked' : ''}>
-                            <span class="notification-slider"></span>
-                        </label>
+                    </div>
+                    
+                    <div class="notification-setting-group">
+                        <h4 class="notification-setting-title">
+                            <i class="bi bi-cart"></i>
+                            Заказы
+                        </h4>
+                        <div class="notification-setting-item">
+                            <div class="notification-setting-label">
+                                <div class="notification-setting-name">Статус заказов</div>
+                                <div class="notification-setting-desc">Уведомлять об изменении статуса заказа</div>
+                            </div>
+                            <label class="notification-switch">
+                                <input type="checkbox" class="notification-toggle" data-setting="orders" ${this.notificationSettings.orders ? 'checked' : ''}>
+                                <span class="notification-slider"></span>
+                            </label>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="notification-setting-group">
-                    <h4 class="notification-setting-title">
-                        <i class="bi bi-percent"></i>
-                        Акции
-                    </h4>
-                    <div class="notification-setting-item">
-                        <div class="notification-setting-label">
-                            <div class="notification-setting-name">Акции и скидки</div>
-                            <div class="notification-setting-desc">Уведомлять о специальных предложениях</div>
-                        </div>
-                        <label class="notification-switch">
-                            <input type="checkbox" class="notification-toggle" data-setting="promotions" ${this.notificationSettings.promotions ? 'checked' : ''}>
-                            <span class="notification-slider"></span>
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="notification-setting-group">
-                    <h4 class="notification-setting-title">
-                        <i class="bi bi-cart"></i>
-                        Заказы
-                    </h4>
-                    <div class="notification-setting-item">
-                        <div class="notification-setting-label">
-                            <div class="notification-setting-name">Статус заказов</div>
-                            <div class="notification-setting-desc">Уведомлять об изменении статуса заказа</div>
-                        </div>
-                        <label class="notification-switch">
-                            <input type="checkbox" class="notification-toggle" data-setting="orders" ${this.notificationSettings.orders ? 'checked' : ''}>
-                            <span class="notification-slider"></span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-        `;
+            `;
 
-        // Добавляем в страницу
-        const catalogSection = document.getElementById('catalog-section');
-        if (catalogSection) {
-            catalogSection.appendChild(settingsSection);
+            // Добавляем в страницу
+            const catalogSection = document.getElementById('catalog-section');
+            if (catalogSection) {
+                catalogSection.appendChild(settingsSection);
+            }
+        } catch (error) {
+            console.error('Ошибка создания секции настроек:', error);
         }
     }
 }
@@ -675,66 +744,45 @@ const notificationSystem = new NotificationSystem();
 
 // Глобальные функции
 function toggleNotifications() {
-    notificationSystem.toggleNotifications();
+    if (typeof notificationSystem !== 'undefined' && typeof notificationSystem.toggleNotifications === 'function') {
+        notificationSystem.toggleNotifications();
+    }
 }
 
 function markAllNotificationsRead() {
-    notificationSystem.markAllAsRead();
+    if (typeof notificationSystem !== 'undefined' && typeof notificationSystem.markAllAsRead === 'function') {
+        notificationSystem.markAllAsRead();
+    }
 }
 
 // Интеграция с основным приложением
 document.addEventListener('DOMContentLoaded', async () => {
-    // Инициализируем систему уведомлений
-    if (typeof notificationSystem !== 'undefined') {
-        await notificationSystem.init();
-        notificationSystem.createNotificationUI();
-        notificationSystem.createSettingsSection();
-    }
+    setTimeout(async () => {
+        // Инициализируем систему уведомлений
+        if (typeof notificationSystem !== 'undefined' && typeof notificationSystem.init === 'function') {
+            await notificationSystem.init();
+            
+            // Создаем UI только если уведомления поддерживаются
+            if (notificationSystem.isSupported) {
+                if (typeof notificationSystem.createNotificationUI === 'function') {
+                    notificationSystem.createNotificationUI();
+                }
+                if (typeof notificationSystem.createSettingsSection === 'function') {
+                    notificationSystem.createSettingsSection();
+                }
+            }
 
-    // Показываем уведомление о акции при загрузке
-    setTimeout(() => {
-        if (Math.random() > 0.5) {
-            notificationSystem.showPromotionNotification(
-                'Специальное предложение',
-                'Скидка 10% на все котлы METEOR до конца недели!'
-            );
+            // Показываем уведомление о акции при загрузке
+            setTimeout(() => {
+                if (Math.random() > 0.5 && typeof notificationSystem.showPromotionNotification === 'function') {
+                    notificationSystem.showPromotionNotification(
+                        'Специальное предложение',
+                        'Скидка 10% на все котлы METEOR до конца недели!'
+                    );
+                }
+            }, 10000);
         }
-    }, 10000);
+    }, 1500);
 });
 
-// Service Worker (sw.js)
-if ('serviceWorker' in navigator) {
-    // Этот файл нужно создать отдельно
-    const swCode = `
-        self.addEventListener('push', function(event) {
-            const data = event.data.json();
-            const options = {
-                body: data.body,
-                icon: '/images/logo.png',
-                badge: '/images/badge.png',
-                vibrate: [200, 100, 200],
-                tag: 'laggartt-push'
-            };
-            
-            event.waitUntil(
-                self.registration.showNotification(data.title, options)
-            );
-        });
-
-        self.addEventListener('notificationclick', function(event) {
-            event.notification.close();
-            event.waitUntil(
-                clients.openWindow('/')
-            );
-        });
-    `;
-
-    // Создаем blob URL для Service Worker
-    const blob = new Blob([swCode], { type: 'application/javascript' });
-    const swURL = URL.createObjectURL(blob);
-    
-    // Регистрируем Service Worker
-    navigator.serviceWorker.register(swURL)
-        .then(registration => console.log('SW registered'))
-        .catch(error => console.log('SW registration failed'));
-}
+console.log('Система уведомлений загружена');

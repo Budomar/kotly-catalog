@@ -42,11 +42,16 @@ class ComparisonModule {
     }
 
     setupEventListeners() {
+        // Обработчик для кликов по чекбоксам
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('compare-checkbox')) {
                 const article = e.target.dataset.article;
                 if (article) {
-                    this.addToComparison(article);
+                    if (e.target.checked) {
+                        this.addToComparison(article);
+                    } else {
+                        this.removeFromComparison(article);
+                    }
                 }
             }
 
@@ -57,23 +62,64 @@ class ComparisonModule {
                 }
             }
         });
+
+        // Обработчик для изменений чекбоксов
+        document.addEventListener('change', (e) => {
+            if (e.target.classList.contains('compare-checkbox')) {
+                const article = e.target.dataset.article;
+                if (article) {
+                    if (e.target.checked) {
+                        this.addToComparison(article);
+                    } else {
+                        this.removeFromComparison(article);
+                    }
+                }
+            }
+        });
     }
 
     addCheckboxesToProducts() {
+        // Удаляем старые чекбоксы, если они есть
+        const oldCheckboxes = document.querySelectorAll('.compare-checkbox');
+        oldCheckboxes.forEach(checkbox => checkbox.remove());
+        
+        // Добавляем новые чекбоксы
         setTimeout(() => {
             const cards = document.querySelectorAll('.card');
             cards.forEach(card => {
-                const article = card.querySelector('.product-article');
-                if (article) {
-                    const articleText = article.textContent.replace('Артикул: ', '').trim();
-                    if (!card.querySelector('.compare-checkbox')) {
-                        const checkbox = document.createElement('input');
-                        checkbox.type = 'checkbox';
-                        checkbox.className = 'compare-checkbox';
-                        checkbox.dataset.article = articleText;
-                        checkbox.checked = this.comparedItems.includes(articleText);
-                        card.style.position = 'relative';
-                        card.appendChild(checkbox);
+                const articleElement = card.querySelector('.product-article');
+                if (articleElement) {
+                    const articleText = articleElement.textContent.replace('Артикул: ', '').trim();
+                    
+                    // Создаем контейнер для чекбокса
+                    const checkboxContainer = document.createElement('div');
+                    checkboxContainer.className = 'compare-checkbox-container';
+                    checkboxContainer.style.position = 'absolute';
+                    checkboxContainer.style.top = '10px';
+                    checkboxContainer.style.right = '10px';
+                    checkboxContainer.style.zIndex = '10';
+
+                    // Создаем чекбокс
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'compare-checkbox form-check-input';
+                    checkbox.dataset.article = articleText;
+                    checkbox.checked = this.comparedItems.includes(articleText);
+                    checkbox.style.cursor = 'pointer';
+                    checkbox.style.width = '20px';
+                    checkbox.style.height = '20px';
+
+                    // Добавляем подсказку
+                    checkbox.title = 'Добавить к сравнению';
+
+                    checkboxContainer.appendChild(checkbox);
+                    
+                    // Убеждаемся, что карточка имеет относительное позиционирование
+                    card.style.position = 'relative';
+                    
+                    // Добавляем чекбокс в карточку
+                    if (!card.querySelector('.compare-checkbox-container')) {
+                        card.appendChild(checkboxContainer);
                     }
                 }
             });
@@ -83,6 +129,8 @@ class ComparisonModule {
     addToComparison(productArticle) {
         if (this.comparedItems.length >= this.maxItems) {
             this.showNotification(`Можно сравнивать не более ${this.maxItems} товаров`, 'warning');
+            // Снимаем выделение с чекбокса
+            this.updateProductCheckbox(productArticle, false);
             return false;
         }
 
@@ -91,9 +139,10 @@ class ComparisonModule {
             return false;
         }
 
-        const product = allProducts.find(p => p.Артикул === productArticle);
+        const product = window.allProducts.find(p => p.Артикул === productArticle);
         if (!product) {
             this.showNotification('Товар не найден', 'error');
+            this.updateProductCheckbox(productArticle, false);
             return false;
         }
 
@@ -119,6 +168,7 @@ class ComparisonModule {
     }
 
     clearComparison() {
+        // Снимаем выделение со всех чекбоксов
         this.comparedItems.forEach(article => {
             this.updateProductCheckbox(article, false);
         });
@@ -127,9 +177,13 @@ class ComparisonModule {
         this.saveToStorage();
         this.updateBadge();
 
-        const modal = bootstrap.Modal.getInstance(document.getElementById('compareModal'));
-        if (modal) {
-            modal.hide();
+        // Закрываем модальное окно, если оно открыто
+        const modalElement = document.getElementById('compareModal');
+        if (modalElement) {
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            }
         }
 
         this.showNotification('Сравнение очищено', 'info');
@@ -149,7 +203,7 @@ class ComparisonModule {
         }
 
         const productsToCompare = this.comparedItems.map(article => 
-            allProducts.find(p => p.Артикул === article)
+            window.allProducts.find(p => p.Артикул === article)
         ).filter(Boolean);
 
         if (productsToCompare.length === 0) {
@@ -158,13 +212,23 @@ class ComparisonModule {
         }
 
         this.renderComparisonTable(productsToCompare);
-        const modal = new bootstrap.Modal(document.getElementById('compareModal'));
-        modal.show();
+        
+        // Показываем модальное окно
+        const modalElement = document.getElementById('compareModal');
+        if (modalElement) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        }
     }
 
     renderComparisonTable(products) {
         const container = document.getElementById('compare-container');
         
+        if (!container) {
+            console.error('Контейнер для сравнения не найден');
+            return;
+        }
+
         if (products.length === 0) {
             container.innerHTML = '<p class="text-center text-muted py-4">Нет товаров для сравнения</p>';
             return;
@@ -173,6 +237,7 @@ class ComparisonModule {
         const features = [
             { name: 'Изображение', key: 'image' },
             { name: 'Модель', key: 'Модель' },
+            { name: 'Артикул', key: 'Артикул' },
             { name: 'Цена', key: 'Цена' },
             { name: 'Мощность', key: 'Мощность' },
             { name: 'Контуры', key: 'Контуры' },
@@ -182,23 +247,24 @@ class ComparisonModule {
 
         let html = `
             <div class="table-responsive">
-                <table class="compare-table">
-                    <thead>
+                <table class="table table-bordered compare-table">
+                    <thead class="table-light">
                         <tr>
                             <th>Характеристика</th>
                             ${products.map(product => `
-                                <th class="compare-product">
-                                    <div class="text-center">
+                                <th class="compare-product text-center">
+                                    <div class="d-flex flex-column align-items-center">
                                         <img src="${product.Фото}" alt="${product.Модель}" 
                                              onerror="this.onerror=null; this.src='images/default.jpg'" 
-                                             class="img-fluid mb-2">
-                                        <div>${product.Модель}</div>
-                                        <small class="text-muted">Арт: ${product.Артикул}</small>
+                                             class="img-fluid mb-2" style="max-height: 80px;">
+                                        <div class="fw-bold">${product.Модель}</div>
+                                        <small class="text-muted">${product.Артикул}</small>
                                         <div class="mt-2">
-                                            <span class="compare-remove" data-article="${product.Артикул}" 
-                                                  title="Удалить из сравнения">
-                                                <i class="bi bi-x-circle"></i>
-                                            </span>
+                                            <button class="btn btn-sm btn-outline-danger compare-remove" 
+                                                    data-article="${product.Артикул}" 
+                                                    title="Удалить из сравнения">
+                                                <i class="bi bi-x-circle"></i> Удалить
+                                            </button>
                                         </div>
                                     </div>
                                 </th>
@@ -209,7 +275,7 @@ class ComparisonModule {
         `;
 
         features.forEach(feature => {
-            html += `<tr><td class="compare-feature">${feature.name}</td>`;
+            html += `<tr><td class="compare-feature fw-bold">${feature.name}</td>`;
             
             products.forEach(product => {
                 let value = '';
@@ -222,13 +288,13 @@ class ComparisonModule {
                     value = `${product[feature.key].toLocaleString('ru-RU')} руб.`;
                 } else if (feature.key === 'В_наличии') {
                     value = product[feature.key] > 0 ? 
-                           `<span class="text-success">${product[feature.key]} шт.</span>` : 
+                           `<span class="text-success fw-bold">${product[feature.key]} шт.</span>` : 
                            '<span class="text-danger">Под заказ</span>';
                 } else {
                     value = product[feature.key] || '—';
                 }
                 
-                html += `<td class="compare-value">${value}</td>`;
+                html += `<td class="compare-value text-center">${value}</td>`;
             });
             
             html += '</tr>';
@@ -238,7 +304,7 @@ class ComparisonModule {
                     </tbody>
                 </table>
             </div>
-            <div class="mt-3">
+            <div class="mt-3 text-center">
                 <small class="text-muted">
                     <i class="bi bi-info-circle"></i> 
                     Для добавления товаров в сравнение отметьте чекбоксы на карточках товаров
@@ -250,13 +316,16 @@ class ComparisonModule {
     }
 
     showNotification(message, type = 'info') {
+        // Удаляем старые уведомления
         const existingNotification = document.querySelector('.compare-notification');
         if (existingNotification) {
             existingNotification.remove();
         }
 
+        // Создаем новое уведомление
         const notification = document.createElement('div');
-        notification.className = `compare-notification ${type}`;
+        notification.className = `compare-notification alert alert-${type} position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 1060; min-width: 300px; max-width: 400px;';
         notification.innerHTML = `
             <div class="d-flex justify-content-between align-items-center">
                 <span>${message}</span>
@@ -266,6 +335,7 @@ class ComparisonModule {
 
         document.body.appendChild(notification);
 
+        // Автоматическое скрытие через 3 секунды
         clearTimeout(this.notificationTimeout);
         this.notificationTimeout = setTimeout(() => {
             if (notification.parentElement) {
@@ -289,4 +359,9 @@ function clearComparison() {
 
 function addToComparison(article) {
     comparisonModule.addToComparison(article);
+}
+
+// Экспортируем модуль для использования в других файлах
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = comparisonModule;
 }

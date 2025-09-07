@@ -31,6 +31,33 @@
             .accordion-body {
                 padding: 1rem;
             }
+            
+            /* Горизонтальное расположение иконок в навигации */
+            .nav-icons-container {
+                display: flex !important;
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .nav-icon-btn {
+                padding: 0.4rem;
+                font-size: 1.1rem;
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .nav-icon-badge {
+                position: absolute;
+                top: -5px;
+                right: -5px;
+                font-size: 0.6rem;
+                min-width: 18px;
+                height: 18px;
+            }
         }
         
         @media (min-width: 769px) {
@@ -39,6 +66,17 @@
             }
             .mobile-accordion {
                 display: none !important;
+            }
+            
+            .nav-icons-container {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .nav-icon-btn {
+                padding: 0.5rem;
             }
         }
         
@@ -57,34 +95,16 @@
             background-color: #f8f9fa;
         }
         
-        /* Стили для уведомлений */
-        .notification-nav-item {
-            position: relative;
-            margin-right: 1rem;
-        }
-        
-        .notification-nav-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.2rem;
-            position: relative;
-            padding: 0.5rem;
-        }
-        
-        .notification-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: #dc3545;
-            color: white;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            font-size: 0.7rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        /* Полное отображение названий моделей */
+        .card-title {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            display: block !important;
+            -webkit-line-clamp: unset !important;
+            -webkit-box-orient: unset !important;
+            line-height: 1.3;
+            margin-bottom: 0.5rem;
         }
         
         /* Убираем стандартные стили кнопок навигации */
@@ -101,6 +121,17 @@
         .hidden-section {
             display: none;
         }
+        
+        /* Аккордеоны Bootstrap */
+        .accordion-button:not(.collapsed) {
+            background-color: #f8f9fa;
+            color: #000;
+        }
+        
+        .accordion-button:focus {
+            box-shadow: none;
+            border-color: rgba(0,0,0,.125);
+        }
     </style>
 </head>
 <body>
@@ -110,26 +141,32 @@
             <a class="navbar-brand" href="#" onclick="showCatalog(); return false;">
                 <img src="images/lagar.png" alt="METEOR" height="40" class="d-inline-block align-text-top">
             </a>
-            <div class="navbar-nav ms-auto align-items-center">
-                <!-- Уведомления -->
-                <div class="notification-nav-item">
-                    <button class="notification-nav-btn" onclick="toggleNotifications(); return false;">
-                        <i class="bi bi-bell"></i>
-                        <span class="notification-badge" id="notification-badge" style="display: none;">0</span>
-                    </button>
+            <div class="navbar-nav ms-auto">
+                <div class="nav-icons-container">
+                    <!-- Уведомления -->
+                    <div class="position-relative">
+                        <button class="btn btn-outline-light nav-icon-btn" onclick="toggleNotifications(); return false;">
+                            <i class="bi bi-bell"></i>
+                        </button>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger nav-icon-badge" id="notification-badge" style="display: none;">0</span>
+                    </div>
+                    
+                    <!-- Корзина -->
+                    <div class="position-relative">
+                        <button class="btn btn-outline-light nav-icon-btn" onclick="toggleMiniCart(); return false;">
+                            <i class="bi bi-cart3"></i>
+                        </button>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger nav-icon-badge" id="cart-badge">0</span>
+                    </div>
+                    
+                    <!-- Сравнение -->
+                    <div class="position-relative">
+                        <button class="btn btn-outline-light nav-icon-btn" id="compare-btn" onclick="showComparison(); return false;">
+                            <i class="bi bi-bar-chart"></i>
+                        </button>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger nav-icon-badge" id="compare-badge">0</span>
+                    </div>
                 </div>
-                
-                <!-- Корзина -->
-                <button class="btn btn-outline-light position-relative mx-2" onclick="toggleMiniCart(); return false;">
-                    <i class="bi bi-cart3"></i>
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="cart-badge">0</span>
-                </button>
-                
-                <!-- Сравнение -->
-                <button class="btn btn-outline-light position-relative" id="compare-btn" onclick="showComparison(); return false;">
-                    <i class="bi bi-bar-chart"></i>
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="compare-badge">0</span>
-                </button>
             </div>
         </div>
     </nav>
@@ -238,18 +275,16 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" type="button" 
-                                data-bs-toggle="collapse" data-bs-target="#mobileFilterCollapse" 
-                                aria-expanded="false" aria-controls="mobileFilterCollapse">
+                                data-bs-toggle="collapse" data-bs-target="#mobileFilterCollapse">
                             <i class="bi bi-funnel me-2"></i> Фильтры
                         </button>
                     </h2>
-                    <div id="mobileFilterCollapse" class="accordion-collapse collapse" 
-                         data-bs-parent="#mobileFilterAccordion">
+                    <div id="mobileFilterCollapse" class="accordion-collapse collapse">
                         <div class="accordion-body">
                             <div class="row g-2">
                                 <div class="col-6">
                                     <label class="form-label">Мощность</label>
-                                    <select id="power-filter-mobile" class="form-select" onchange="filterProductsMobile()">
+                                    <select id="power-filter-mobile" class="form-select">
                                         <option value="">Все</option>
                                         <option value="24">24 кВт</option>
                                         <option value="28">28 кВт</option>
@@ -259,7 +294,7 @@
                                 </div>
                                 <div class="col-6">
                                     <label class="form-label">Контуры</label>
-                                    <select id="contour-filter-mobile" class="form-select" onchange="filterProductsMobile()">
+                                    <select id="contour-filter-mobile" class="form-select">
                                         <option value="">Все</option>
                                         <option value="Одноконтурный">Одноконтурный</option>
                                         <option value="Двухконтурный">Двухконтурный</option>
@@ -267,7 +302,7 @@
                                 </div>
                                 <div class="col-6">
                                     <label class="form-label">Wi-Fi</label>
-                                    <select id="wifi-filter-mobile" class="form-select" onchange="filterProductsMobile()">
+                                    <select id="wifi-filter-mobile" class="form-select">
                                         <option value="">Все</option>
                                         <option value="Да">С Wi-Fi</option>
                                         <option value="Нет">Без Wi-Fi</option>
@@ -275,7 +310,7 @@
                                 </div>
                                 <div class="col-6">
                                     <label class="form-label">Наличие</label>
-                                    <select id="stock-filter-mobile" class="form-select" onchange="filterProductsMobile()">
+                                    <select id="stock-filter-mobile" class="form-select">
                                         <option value="">Все</option>
                                         <option value="available">В наличии</option>
                                         <option value="outofstock">Под заказ</option>
@@ -292,27 +327,25 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" type="button" 
-                                data-bs-toggle="collapse" data-bs-target="#mobileDiscountCollapse" 
-                                aria-expanded="false" aria-controls="mobileDiscountCollapse">
+                                data-bs-toggle="collapse" data-bs-target="#mobileDiscountCollapse">
                             <i class="bi bi-percent me-2"></i> Скидка
                         </button>
                     </h2>
-                    <div id="mobileDiscountCollapse" class="accordion-collapse collapse" 
-                         data-bs-parent="#mobileDiscountAccordion">
+                    <div id="mobileDiscountCollapse" class="accordion-collapse collapse">
                         <div class="accordion-body">
                             <div class="mb-2">
                                 <label class="form-label">Размер скидки: <span id="discount-value-mobile">0</span>%</label>
-                                <input type="range" id="discount-slider-mobile" class="form-range" min="0" max="50" value="0" oninput="updateDiscountMobile(this.value)">
+                                <input type="range" id="discount-slider-mobile" class="form-range" min="0" max="50" value="0">
                             </div>
                             <div class="mb-2">
-                                <input type="number" id="discount-input-mobile" class="form-control" min="0" max="50" value="0" oninput="updateDiscountMobile(this.value)">
+                                <input type="number" id="discount-input-mobile" class="form-control" min="0" max="50" value="0">
                             </div>
                             <div class="form-check form-switch mb-2">
                                 <input class="form-check-input" type="checkbox" id="auto-apply-mobile" checked>
                                 <label class="form-check-label" for="auto-apply-mobile">Применять автоматически</label>
                             </div>
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="show-original-mobile" checked onchange="toggleOriginalPrices()">
+                                <input class="form-check-input" type="checkbox" id="show-original-mobile" checked>
                                 <label class="form-check-label" for="show-original-mobile">Показывать оригинальные цены</label>
                             </div>
                         </div>
@@ -424,60 +457,103 @@
             alert('Система уведомлений в разработке');
         }
 
-        // Функция для обновления скидки на мобильной версии
-        function updateDiscountMobile(value) {
-            value = Math.max(0, Math.min(50, parseInt(value) || 0));
-            document.getElementById('discount-slider-mobile').value = value;
-            document.getElementById('discount-input-mobile').value = value;
-            document.getElementById('discount-value-mobile').textContent = value;
-            
-            // Синхронизируем с основной версией
-            document.getElementById('discount-slider').value = value;
-            document.getElementById('discount-input').value = value;
-            document.getElementById('discount-value').textContent = value;
-            
-            if (typeof updateDiscount === 'function') {
-                updateDiscount(value);
-            }
-        }
-
-        // Фильтрация для мобильной версии
-        function filterProductsMobile() {
-            // Синхронизируем значения фильтров
-            const filters = ['power', 'contour', 'wifi', 'stock'];
-            
-            filters.forEach(filter => {
-                const mobileValue = document.getElementById(`${filter}-filter-mobile`).value;
-                document.getElementById(`${filter}-filter`).value = mobileValue;
-            });
-            
-            // Вызываем основную функцию фильтрации
-            if (typeof filterProducts === 'function') {
-                filterProducts();
-            }
-        }
-
-        // Синхронизация при загрузке
+        // Инициализация аккордеонов после загрузки DOM
         document.addEventListener('DOMContentLoaded', function() {
-            // Синхронизируем начальные значения фильтров
-            const filters = ['power', 'contour', 'wifi', 'stock'];
-            
-            filters.forEach(filter => {
-                const desktopValue = document.getElementById(`${filter}-filter`).value;
-                document.getElementById(`${filter}-filter-mobile`).value = desktopValue;
+            // Инициализируем аккордеоны
+            const filterCollapse = new bootstrap.Collapse(document.getElementById('mobileFilterCollapse'), {
+                toggle: false
             });
             
-            // Синхронизируем скидку
-            const discountValue = document.getElementById('discount-value').textContent;
-            document.getElementById('discount-value-mobile').textContent = discountValue;
-            document.getElementById('discount-slider-mobile').value = discountValue;
-            document.getElementById('discount-input-mobile').value = discountValue;
+            const discountCollapse = new bootstrap.Collapse(document.getElementById('mobileDiscountCollapse'), {
+                toggle: false
+            });
             
-            // Синхронизируем чекбоксы
-            const autoApply = document.getElementById('auto-apply').checked;
-            const showOriginal = document.getElementById('show-original').checked;
-            document.getElementById('auto-apply-mobile').checked = autoApply;
-            document.getElementById('show-original-mobile').checked = showOriginal;
+            // Обработчики для кнопок аккордеонов
+            document.querySelector('[data-bs-target="#mobileFilterCollapse"]').addEventListener('click', function() {
+                filterCollapse.toggle();
+            });
+            
+            document.querySelector('[data-bs-target="#mobileDiscountCollapse"]').addEventListener('click', function() {
+                discountCollapse.toggle();
+            });
+
+            // Функция для обновления скидки на мобильной версии
+            window.updateDiscountMobile = function(value) {
+                value = Math.max(0, Math.min(50, parseInt(value) || 0));
+                document.getElementById('discount-slider-mobile').value = value;
+                document.getElementById('discount-input-mobile').value = value;
+                document.getElementById('discount-value-mobile').textContent = value;
+                
+                // Синхронизируем с основной версией
+                document.getElementById('discount-slider').value = value;
+                document.getElementById('discount-input').value = value;
+                document.getElementById('discount-value').textContent = value;
+                
+                if (typeof updateDiscount === 'function') {
+                    updateDiscount(value);
+                }
+            }
+
+            // Обработчики для мобильных фильтров
+            const mobileFilters = [
+                'power-filter-mobile',
+                'contour-filter-mobile', 
+                'wifi-filter-mobile',
+                'stock-filter-mobile'
+            ];
+            
+            mobileFilters.forEach(filterId => {
+                document.getElementById(filterId).addEventListener('change', function() {
+                    // Синхронизируем с десктопными фильтрами
+                    const desktopFilterId = filterId.replace('-mobile', '');
+                    document.getElementById(desktopFilterId).value = this.value;
+                    
+                    // Вызываем фильтрацию
+                    if (typeof filterProducts === 'function') {
+                        filterProducts();
+                    }
+                });
+            });
+
+            // Обработчики для мобильных элементов скидки
+            document.getElementById('discount-slider-mobile').addEventListener('input', function() {
+                updateDiscountMobile(this.value);
+            });
+            
+            document.getElementById('discount-input-mobile').addEventListener('input', function() {
+                updateDiscountMobile(this.value);
+            });
+            
+            document.getElementById('auto-apply-mobile').addEventListener('change', function() {
+                document.getElementById('auto-apply').checked = this.checked;
+            });
+            
+            document.getElementById('show-original-mobile').addEventListener('change', function() {
+                document.getElementById('show-original').checked = this.checked;
+                if (typeof toggleOriginalPrices === 'function') {
+                    toggleOriginalPrices();
+                }
+            });
+
+            // Синхронизация начальных значений
+            setTimeout(() => {
+                // Синхронизируем фильтры
+                const filters = ['power', 'contour', 'wifi', 'stock'];
+                filters.forEach(filter => {
+                    const desktopValue = document.getElementById(`${filter}-filter`).value;
+                    document.getElementById(`${filter}-filter-mobile`).value = desktopValue;
+                });
+                
+                // Синхронизируем скидку
+                const discountValue = document.getElementById('discount-slider').value;
+                document.getElementById('discount-slider-mobile').value = discountValue;
+                document.getElementById('discount-input-mobile').value = discountValue;
+                document.getElementById('discount-value-mobile').textContent = discountValue;
+                
+                // Синхронизируем чекбоксы
+                document.getElementById('auto-apply-mobile').checked = document.getElementById('auto-apply').checked;
+                document.getElementById('show-original-mobile').checked = document.getElementById('show-original').checked;
+            }, 100);
         });
 
         // Показ/скрытие каталога и корзины

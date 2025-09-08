@@ -1,0 +1,32 @@
+# 1. Открыть проект в VS Code
+cd C:\Projects\my_catalog\kotly-catalog
+code .
+
+# 2. Внести изменения в файлы
+
+# 3. Сохранить (Ctrl+S)
+
+# Получить изменения с GitHub
+git pull origin main
+
+# 4. Закоммитить изменения
+git add .
+git commit -m "Описание изменений"
+
+# 5. Запушить на GitHub
+git push origin main
+
+🔄 Вернуть привязку к e-laggartt
+bash
+# Перейдите в папку проекта
+cd C:\Projects\my_catalog\kotly-catalog
+
+# Удалите текущую привязку к Budomar
+git remote remove origin
+
+# Добавьте обратно привязку к e-laggartt
+git remote add origin https://github.com/e-laggartt/kotly-catalog.git
+
+# Проверьте
+git remote -v
+# Должно показывать: origin → e-laggartt/kotly-catalog

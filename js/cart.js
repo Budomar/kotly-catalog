@@ -136,6 +136,11 @@ const cartFunctions = {
                 window.cartStorage.saveCartToStorage();
             }
 
+            // Обновляем мини-корзину если она видима
+            if (typeof window.miniCart !== 'undefined' && typeof window.miniCart.updateMiniCart === 'function') {
+                window.miniCart.updateMiniCart();
+            }
+
         } catch (error) {
             console.error('Ошибка при обновлении корзины:', error);
             this.showNotification('Ошибка при обновлении корзины', 'error');

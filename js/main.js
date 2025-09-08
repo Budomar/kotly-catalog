@@ -253,7 +253,7 @@ function renderProducts() {
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div class="product-quantity me-2">
                                         <input type="number" class="form-control form-control-sm" 
-                                               id="quantity-${product.Артикуl}" value="1" min="1" max="${maxQuantity}"
+                                               id="quantity-${product.Артикул}" value="1" min="1" max="${maxQuantity}"
                                                style="width: 70px;">
                                     </div>
                                     <button class="btn btn-sm ${inCart ? 'btn-success' : 'btn-primary'} flex-grow-1" 
@@ -276,7 +276,9 @@ function renderProducts() {
     
     // Добавляем чекбоксы сравнения
     if (typeof comparisonModule !== 'undefined' && typeof comparisonModule.addCheckboxesToProducts === 'function') {
-        comparisonModule.addCheckboxesToProducts();
+        setTimeout(() => {
+            comparisonModule.addCheckboxesToProducts();
+        }, 100);
     }
     
     updateStatistics();
@@ -448,3 +450,11 @@ window.sortProducts = sortProducts;
 window.updateDiscount = updateDiscount;
 window.toggleOriginalPrices = toggleOriginalPrices;
 window.showNotification = showNotification;
+window.initModules = initModules;
+
+// Автоматическая инициализация после загрузки
+setTimeout(() => {
+    if (typeof initModules === 'function') {
+        initModules();
+    }
+}, 2000);

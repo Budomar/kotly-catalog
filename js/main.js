@@ -23,6 +23,11 @@ async function loadData() {
         allProducts = await response.json();
         console.log('Данные загружены, товаров:', allProducts.length);
         
+        // Загружаем акции после загрузки товаров
+        if (typeof promotionsSystem !== 'undefined' && typeof promotionsSystem.init === 'function') {
+            await promotionsSystem.init();
+        }
+        
         // Исправляем определение контуров
         allProducts = allProducts.map(product => {
             const model = product.Модель;

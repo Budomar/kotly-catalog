@@ -239,8 +239,14 @@ const cartFunctions = {
 
             const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
             const totalPrice = cart.reduce((sum, item) => sum + (item.Цена * item.quantity), 0);
-            const totalDiscount = cart.reduce((sum, item) => sum + ((item.Цена - item.discountPrice) * item.quantity), 0);
-            const finalPrice = totalPrice - totalDiscount;
+            const totalDiscount = cart.reduce((sum, item) => sum + ((item.originalPrice - item.Цена) * item.quantity), 0);
+            const finalPrice = totalPrice;
+
+            // Проверяем акции для корзины
+            let cartPromotions = [];
+            if (typeof promotionsSystem !== 'undefined' && typeof promotionsSystem.getCartPromotions === 'function') {
+                cartPromotions = promotionsSystem.getCartPromotions(cart);
+            }
 
             // Обновляем итоговую информацию
             document.getElementById('cart-total-items').textContent = totalItems;
@@ -323,6 +329,22 @@ const cartFunctions = {
                     </div>
                 `;
             }).join('');
+
+            // Добавляем блок с акциями
+            if (cartPromotions.length > 0) {
+                const promotionsHTML = `
+                    <div class="cart-promotions alert alert-success mt-3">
+                        <h6><i class="bi bi-gift"></i> Ваши акции:</h6>
+                        ${cartPromotions.map(promo => `
+                            <div class="promotion-item">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                ${promo.название}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', promotionsHTML);
+            }
 
         } catch (error) {
             console.error('Ошибка при обновлении корзины:', error);

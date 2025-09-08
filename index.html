@@ -465,149 +465,169 @@
 
     <!-- Подключение JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- ОСНОВНЫЕ ФУНКЦИИ -->
     <script src="js/main.js"></script>
     <script src="js/cart.js"></script>
     <script src="js/comparison.js"></script>
+    
+    <!-- МОДУЛИ (загружаются после основных) -->
     <script src="modules/cart-storage.js"></script>
     <script src="modules/mini-cart.js"></script>
     <script src="modules/recommendations.js"></script>
     <script src="modules/notifications.js"></script>
     <script src="modules/touch-interface.js"></script>
     
+    <!-- ИНИЦИАЛИЗАЦИЯ -->
     <script>
-        // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Страница загружена, инициализируем модули...');
-            
-            // Загружаем данные
-            if (typeof loadData === 'function') {
-                loadData();
-            }
-            js/comparison.js
-            // Инициализируем аккордеоны Bootstrap
-            const filterCollapse = new bootstrap.Collapse(document.getElementById('mobileFilterCollapse'), {
-                toggle: false
-            });
-            
-            const discountCollapse = new bootstrap.Collapse(document.getElementById('mobileDiscountCollapse'), {
-                toggle: false
-            });
-            
-            // Синхронизация фильтров между мобильной и десктопной версиями
-            window.syncFilter = function(filterName, value) {
-                // Синхронизируем с десктопными фильтрами
-                document.getElementById(filterName + '-filter').value = value;
-                
-                // Вызываем фильтрацию
-                if (typeof filterProducts === 'function') {
-                    filterProducts();
-                }
-            }
-            
-            // Функция для обновления скидки на мобильной версии
-            window.updateDiscountMobile = function(value) {
-                value = Math.max(0, Math.min(50, parseInt(value) || 0));
-                document.getElementById('discount-slider-mobile').value = value;
-                document.getElementById('discount-input-mobile').value = value;
-                document.getElementById('discount-value-mobile').textContent = value;
-                
-                // Синхронизируем с основной версией
-                document.getElementById('discount-slider').value = value;
-                document.getElementById('discount-input').value = value;
-                document.getElementById('discount-value').textContent = value;
-                
-                if (typeof updateDiscount === 'function') {
-                    updateDiscount(value);
-                }
-            }
-            
-            // Синхронизация начальных значений при загрузке
-            setTimeout(() => {
-                // Синхронизируем фильтры
-                const filters = ['power', 'contour', 'wifi', 'stock'];
-                filters.forEach(filter => {
-                    const desktopValue = document.getElementById(`${filter}-filter`).value;
-                    document.getElementById(`${filter}-filter-mobile`).value = desktopValue;
-                });
-                
-                // Синхронизируем скидку
-                const discountValue = document.getElementById('discount-slider').value;
-                updateDiscountMobile(discountValue);
-                
-                // Синхронизируем чекбоксы
-                document.getElementById('auto-apply-mobile').checked = document.getElementById('auto-apply').checked;
-                document.getElementById('show-original-mobile').checked = document.getElementById('show-original').checked;
-            }, 500);
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Страница загружена, инициализируем...');
+        
+        // Загружаем данные
+        if (typeof loadData === 'function') {
+            loadData();
+        }
+        
+        // Инициализируем аккордеоны Bootstrap
+        const filterCollapse = new bootstrap.Collapse(document.getElementById('mobileFilterCollapse'), {
+            toggle: false
         });
-
-        // Показ/скрытие каталога и корзины
-        function showCatalog() {
-            document.getElementById('catalog-section').classList.remove('hidden-section');
-            document.getElementById('cart-section').classList.add('hidden-section');
-            document.body.classList.remove('cart-open');
+        
+        const discountCollapse = new bootstrap.Collapse(document.getElementById('mobileDiscountCollapse'), {
+            toggle: false
+        });
+        
+        // Синхронизация фильтров между мобильной и десктопной версиями
+        window.syncFilter = function(filterName, value) {
+            document.getElementById(filterName + '-filter').value = value;
+            if (typeof filterProducts === 'function') {
+                filterProducts();
+            }
         }
-
-        function showCart() {
-            document.getElementById('catalog-section').classList.add('hidden-section');
-            document.getElementById('cart-section').classList.remove('hidden-section');
-            document.body.classList.add('cart-open');
+        
+        // Функция для обновления скидки на мобильной версии
+        window.updateDiscountMobile = function(value) {
+            value = Math.max(0, Math.min(50, parseInt(value) || 0));
+            document.getElementById('discount-slider-mobile').value = value;
+            document.getElementById('discount-input-mobile').value = value;
+            document.getElementById('discount-value-mobile').textContent = value;
             
-            if (typeof updateCart === 'function') {
-                updateCart();
+            document.getElementById('discount-slider').value = value;
+            document.getElementById('discount-input').value = value;
+            document.getElementById('discount-value').textContent = value;
+            
+            if (typeof updateDiscount === 'function') {
+                updateDiscount(value);
             }
         }
         
-        function showMiniCart() {
-            if (typeof miniCart !== 'undefined' && typeof miniCart.show === 'function') {
-                miniCart.show();
-            } else {
-                showCart();
+        // Инициализация модулей после загрузки
+        setTimeout(() => {
+            console.log('Инициализация модулей...');
+            
+            // Модуль сохранения корзины
+            if (typeof cartStorage !== 'undefined' && typeof cartStorage.init === 'function') {
+                cartStorage.init();
             }
-        }
+            
+            // Модуль сравнения
+            if (typeof comparisonModule !== 'undefined' && typeof comparisonModule.init === 'function') {
+                comparisonModule.init();
+            }
+            
+            // Мини-корзина
+            if (typeof miniCart !== 'undefined' && typeof miniCart.init === 'function') {
+                miniCart.init();
+            }
+            
+            // Уведомления
+            if (typeof notificationSystem !== 'undefined' && typeof notificationSystem.init === 'function') {
+                notificationSystem.init();
+            }
+            
+            // Touch-интерфейс
+            if (typeof touchInterface !== 'undefined' && typeof touchInterface.init === 'function') {
+                touchInterface.init();
+            }
+            
+            // Рекомендации
+            if (typeof recommendationsSystem !== 'undefined' && typeof recommendationsSystem.init === 'function') {
+                recommendationsSystem.init();
+            }
+        }, 1000);
+    });
 
-        // Базовая функция очистки корзины
-        function clearCart() {
-            if (confirm('Очистить корзину?')) {
-                if (typeof clearCartStorage === 'function') {
-                    clearCartStorage();
-                } else {
-                    // Резервная функция, если модуль не загружен
-                    cart = [];
-                    if (typeof updateCart === 'function') updateCart();
-                    if (typeof updateCartBadge === 'function') updateCartBadge();
-                    if (typeof renderProducts === 'function') renderProducts();
-                }
-            }
-        }
+    // Показ/скрытие каталога и корзины
+    function showCatalog() {
+        document.getElementById('catalog-section').classList.remove('hidden-section');
+        document.getElementById('cart-section').classList.add('hidden-section');
+        document.body.classList.remove('cart-open');
+    }
+
+    function showCart() {
+        document.getElementById('catalog-section').classList.add('hidden-section');
+        document.getElementById('cart-section').classList.remove('hidden-section');
+        document.body.classList.add('cart-open');
         
-        // Простая система уведомлений (заглушка)
-        function toggleNotifications() {
-            alert('Система уведомлений будет доступна после полной загрузки страницы');
+        if (typeof updateCart === 'function') {
+            updateCart();
         }
-        
-        // Глобальные функции для сравнения
-        function showComparison() {
-            if (typeof comparisonModule !== 'undefined' && typeof comparisonModule.showComparison === 'function') {
-                comparisonModule.showComparison();
+    }
+    
+    function showMiniCart() {
+        if (typeof miniCart !== 'undefined' && typeof miniCart.show === 'function') {
+            miniCart.show();
+        } else {
+            showCart();
+        }
+    }
+
+    // Базовая функция очистки корзины
+    function clearCart() {
+        if (confirm('Очистить корзину?')) {
+            if (typeof clearCartStorage === 'function') {
+                clearCartStorage();
             } else {
-                alert('Модуль сравнения загружается...');
+                cart = [];
+                if (typeof updateCart === 'function') updateCart();
+                if (typeof updateCartBadge === 'function') updateCartBadge();
+                if (typeof renderProducts === 'function') renderProducts();
             }
         }
-        
-        function clearComparison() {
-            if (typeof comparisonModule !== 'undefined' && typeof comparisonModule.clearComparison === 'function') {
-                comparisonModule.clearComparison();
-            }
+    }
+    
+    // Простая система уведомлений
+    function toggleNotifications() {
+        if (typeof notificationSystem !== 'undefined' && typeof notificationSystem.toggleNotifications === 'function') {
+            notificationSystem.toggleNotifications();
+        } else {
+            alert('Система уведомлений загружается...');
         }
-        
-        // Обработка отправки запросов
-        function sendRequest(type) {
-            if (typeof window.sendRequest === 'function') {
-                window.sendRequest(type);
-            } else {
-                alert('Функция отправки запроса еще не загружена');
-            }
+    }
+    
+    // Глобальные функции для сравнения
+    function showComparison() {
+        if (typeof comparisonModule !== 'undefined' && typeof comparisonModule.showComparison === 'function') {
+            comparisonModule.showComparison();
+        } else {
+            alert('Модуль сравнения загружается...');
         }
+    }
+    
+    function clearComparison() {
+        if (typeof comparisonModule !== 'undefined' && typeof comparisonModule.clearComparison === 'function') {
+            comparisonModule.clearComparison();
+        }
+    }
+    
+    // Обработка отправки запросов
+    function sendRequest(type) {
+        if (typeof window.sendRequest === 'function') {
+            window.sendRequest(type);
+        } else {
+            alert('Функция отправки запроса еще не загружена');
+        }
+    }
     </script>
 </body>
 </html>

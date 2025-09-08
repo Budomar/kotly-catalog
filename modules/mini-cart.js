@@ -1,4 +1,4 @@
-// modules/mini-cart.js - Модуль всплывающей корзины
+// modules/mini-cart.js - Модуль всплывающей корзины (исправленная версия)
 class MiniCart {
     constructor() {
         this.isVisible = false;
@@ -55,7 +55,7 @@ class MiniCart {
                             <i class="bi bi-cart-x"></i>
                         </div>
                         <p>Корзина пуста</p>
-                        <button class="btn btn-primary mt-2" onclick="showCatalog(); hideMiniCart();">
+                        <button class="btn btn-primary mt-2" onclick="showCatalog(); miniCart.hide();">
                             Перейти в каталог
                         </button>
                     </div>
@@ -71,10 +71,10 @@ class MiniCart {
                         <span class="mini-cart-discount-value text-success">0 руб.</span>
                     </div>
                     <div class="mini-cart-actions">
-                        <button class="mini-cart-btn mini-cart-btn-secondary" onclick="showCatalog(); hideMiniCart();">
+                        <button class="mini-cart-btn mini-cart-btn-secondary" onclick="showCatalog(); miniCart.hide();">
                             <i class="bi bi-arrow-left"></i> В каталог
                         </button>
-                        <button class="mini-cart-btn mini-cart-btn-primary" onclick="showCart(); hideMiniCart();">
+                        <button class="mini-cart-btn mini-cart-btn-primary" onclick="showCart(); miniCart.hide();">
                             <i class="bi bi-cart-check"></i> Оформить
                         </button>
                     </div>
@@ -134,7 +134,7 @@ class MiniCart {
                 if (this.isVisible) {
                     this.updateMiniCart();
                 }
-                this.updateCartBadge(cart.reduce((sum, item) => sum + item.quantity, 0));
+                this.updateCartBadge(window.cart.reduce((sum, item) => sum + item.quantity, 0));
             };
 
             // Слушаем custom event обновления корзины
@@ -247,12 +247,12 @@ class MiniCart {
             }
 
             // Обновляем счетчик товаров
-            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const totalItems = window.cart.reduce((sum, item) => sum + item.quantity, 0);
             if (cartCount) {
                 cartCount.textContent = totalItems;
             }
 
-            if (cart.length === 0) {
+            if (window.cart.length === 0) {
                 emptyState.style.display = 'flex';
                 itemsContainer.style.display = 'none';
                 footer.style.display = 'none';
@@ -265,12 +265,12 @@ class MiniCart {
             footer.style.display = 'block';
 
             // Рассчитываем итоги
-            const total = cart.reduce((sum, item) => sum + (item.discountPrice * item.quantity), 0);
-            const originalTotal = cart.reduce((sum, item) => sum + (item.Цена * item.quantity), 0);
+            const total = window.cart.reduce((sum, item) => sum + (item.discountPrice * item.quantity), 0);
+            const originalTotal = window.cart.reduce((sum, item) => sum + (item.Цена * item.quantity), 0);
             const totalDiscount = originalTotal - total;
 
             // Обновляем товары
-            itemsContainer.innerHTML = cart.map(item => `
+            itemsContainer.innerHTML = window.cart.map(item => `
                 <li class="mini-cart-item">
                     <img src="${item.Фото || 'images/default.jpg'}" 
                          alt="${item.Модель}" 
@@ -408,37 +408,6 @@ class MiniCart {
             console.error('Ошибка показа уведомления:', error);
         }
     }
-
-    // Уничтожение модуля (для очистки)
-    destroy() {
-        try {
-            this.hide();
-            
-            if (this.resizeHandler) {
-                window.removeEventListener('resize', this.resizeHandler);
-            }
-            
-            if (this.clickOutsideHandler) {
-                document.removeEventListener('click', this.clickOutsideHandler);
-            }
-
-            if (this.cartUpdateHandler) {
-                document.removeEventListener('cartUpdated', this.cartUpdateHandler);
-            }
-
-            const miniCart = document.querySelector('.mini-cart');
-            const backdrop = document.querySelector('.mini-cart-backdrop');
-            
-            if (miniCart) miniCart.remove();
-            if (backdrop) backdrop.remove();
-            
-            this.initialized = false;
-            console.log('Модуль всплывающей корзины уничтожен');
-
-        } catch (error) {
-            console.error('Ошибка уничтожения мини-корзины:', error);
-        }
-    }
 }
 
 // Создаем экземпляр модуля
@@ -462,66 +431,5 @@ function toggleMiniCart() {
         miniCart.toggle();
     }
 }
-
-// Перехватываем функцию добавления в корзину для показа уведомления
-const originalAddToCart = window.addToCart;
-if (typeof originalAddToCart === 'function') {
-    window.addToCart = function(article) {
-        const result = originalAddToCart(article);
-        if (result !== false) {
-            const product = allProducts.find(p => p.Артикул === article);
-            const quantityInput = document.getElementById(`quantity-${article}`);
-            const quantity = parseInt(quantityInput?.value) || 1;
-            
-            if (product && typeof miniCart !== 'undefined') {
-                if (typeof miniCart.showAddToCartNotification === 'function') {
-                    miniCart.showAddToCartNotification(product.Модель, quantity);
-                }
-                
-                // Показываем мини-корзину на мобильных устройствах
-                if (window.innerWidth < 769 && typeof miniCart.show === 'function') {
-                    setTimeout(() => miniCart.show(), 100);
-                }
-            }
-        }
-        return result;
-    };
-}
-
-// Обновляем бейдж при изменении корзины
-const originalUpdateCartBadge = window.updateCartBadge;
-if (typeof originalUpdateCartBadge === 'function') {
-    window.updateCartBadge = function() {
-        originalUpdateCartBadge();
-        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-        if (typeof miniCart !== 'undefined' && typeof miniCart.updateCartBadge === 'function') {
-            miniCart.updateCartBadge(totalItems);
-        }
-    };
-}
-
-// Обновляем мини-корзину при изменениях
-const originalUpdateCart = window.updateCart;
-if (typeof originalUpdateCart === 'function') {
-    window.updateCart = function() {
-        originalUpdateCart();
-        if (typeof miniCart !== 'undefined' && typeof miniCart.updateMiniCart === 'function') {
-            miniCart.updateMiniCart();
-        }
-        
-        // Генерируем custom event
-        const event = new CustomEvent('cartUpdated');
-        document.dispatchEvent(event);
-    };
-}
-
-// Инициализация при загрузке
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        if (typeof miniCart !== 'undefined' && typeof miniCart.init === 'function') {
-            miniCart.init();
-        }
-    }, 1000);
-});
 
 console.log('Модуль мини-корзины загружен');

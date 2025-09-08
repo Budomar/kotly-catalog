@@ -1,4 +1,4 @@
-// modules/cart-storage.js - Модуль сохранения корзины между сессиями
+// modules/cart-storage.js - Модуль сохранения корзины между сессиями (исправленная версия)
 class CartStorage {
     constructor() {
         this.storageKey = 'laggartt_cart';
@@ -53,12 +53,14 @@ class CartStorage {
             };
 
             // Сохраняем при изменении скидки
-            const originalUpdateDiscount = window.updateDiscount;
-            window.updateDiscount = (value) => {
-                originalUpdateDiscount(value);
-                this.updateCartPrices();
-                this.saveCartToStorage();
-            };
+            if (typeof window.updateDiscount === 'function') {
+                const originalUpdateDiscount = window.updateDiscount;
+                window.updateDiscount = (value) => {
+                    originalUpdateDiscount(value);
+                    this.updateCartPrices();
+                    this.saveCartToStorage();
+                };
+            }
 
             // Сохраняем перед закрытием страницы
             window.addEventListener('beforeunload', () => {
@@ -84,13 +86,13 @@ class CartStorage {
         try {
             // Подготавливаем данные для сохранения
             const cartData = {
-                items: cart.map(item => ({
+                items: window.cart.map(item => ({
                     Артикул: item.Артикул,
                     quantity: item.quantity,
                     addedAt: item.addedAt || new Date().toISOString()
                 })),
                 timestamp: new Date().getTime(),
-                discount: currentDiscount,
+                discount: window.currentDiscount || 0,
                 version: '1.0'
             };
             
@@ -131,12 +133,12 @@ class CartStorage {
 
             // Восстанавливаем скидку
             if (cartData.discount !== undefined) {
-                currentDiscount = cartData.discount;
+                window.currentDiscount = cartData.discount;
                 // Обновляем UI скидки
                 if (document.getElementById('discount-slider')) {
-                    document.getElementById('discount-slider').value = currentDiscount;
-                    document.getElementById('discount-input').value = currentDiscount;
-                    document.getElementById('discount-value').textContent = currentDiscount;
+                    document.getElementById('discount-slider').value = window.currentDiscount;
+                    document.getElementById('discount-input').value = window.currentDiscount;
+                    document.getElementById('discount-value').textContent = window.currentDiscount;
                 }
             }
 
@@ -178,7 +180,7 @@ class CartStorage {
 
         savedItems.forEach(savedItem => {
             // Ищем актуальный товар в каталоге
-            const actualProduct = allProducts.find(p => p.Артикул === savedItem.Артикул);
+            const actualProduct = window.allProducts.find(p => p.Артикул === savedItem.Артикул);
             
             if (actualProduct) {
                 // Проверяем доступность
@@ -187,7 +189,7 @@ class CartStorage {
                     const restoredItem = {
                         ...actualProduct,
                         quantity: Math.min(savedItem.quantity, actualProduct.В_наличии),
-                        discountPrice: calculateDiscountPrice(actualProduct.Цена, currentDiscount),
+                        discountPrice: this.calculateDiscountPrice(actualProduct.Цена, window.currentDiscount || 0),
                         addedAt: savedItem.addedAt || new Date().toISOString()
                     };
                     
@@ -210,23 +212,23 @@ class CartStorage {
         });
 
         // Обновляем корзину
-        cart = restoredItems;
+        window.cart = restoredItems;
 
         // Показываем уведомление о восстановлении
         this.showRestorationNotification(restoredItems.length, unavailableItems, outdatedItems);
 
         // Обновляем интерфейс
-        if (typeof updateCartBadge === 'function') updateCartBadge();
-        if (typeof updateCart === 'function') updateCart();
-        if (typeof renderProducts === 'function') renderProducts();
+        if (typeof window.updateCartBadge === 'function') window.updateCartBadge();
+        if (typeof window.updateCart === 'function') window.updateCart();
+        if (typeof window.renderProducts === 'function') window.renderProducts();
     }
 
     // Обновление цен в корзине при изменении скидки
     updateCartPrices() {
-        cart.forEach(item => {
-            const actualProduct = allProducts.find(p => p.Артикул === item.Артикул);
+        window.cart.forEach(item => {
+            const actualProduct = window.allProducts.find(p => p.Артикул === item.Артикул);
             if (actualProduct) {
-                item.discountPrice = calculateDiscountPrice(actualProduct.Цена, currentDiscount);
+                item.discountPrice = this.calculateDiscountPrice(actualProduct.Цена, window.currentDiscount || 0);
                 item.Цена = actualProduct.Цена;
             }
         });
@@ -295,16 +297,16 @@ class CartStorage {
         }
         
         if (message) {
-            showNotification(message, 'info');
+            this.showNotification(message, 'info');
         }
     }
 
     // Получение информации о корзине
     getCartInfo() {
         return {
-            totalItems: cart.reduce((sum, item) => sum + item.quantity, 0),
-            totalValue: cart.reduce((sum, item) => sum + (item.discountPrice * item.quantity), 0),
-            itemsCount: cart.length,
+            totalItems: window.cart.reduce((sum, item) => sum + item.quantity, 0),
+            totalValue: window.cart.reduce((sum, item) => sum + (item.discountPrice * item.quantity), 0),
+            itemsCount: window.cart.length,
             lastUpdated: new Date().toLocaleString('ru-RU'),
             storageStatus: this.getStorageStatus()
         };
@@ -322,39 +324,33 @@ class CartStorage {
         }
     }
 
-    // Резервное копирование корзины
-    backupCart() {
-        try {
-            const backupData = {
-                cart: JSON.parse(JSON.stringify(cart)),
-                timestamp: new Date().getTime(),
-                discount: currentDiscount
-            };
-            
-            sessionStorage.setItem('cart_backup', JSON.stringify(backupData));
-            return true;
-        } catch (error) {
-            console.error('Ошибка резервного копирования:', error);
-            return false;
-        }
+    // Вспомогательная функция для расчета цены со скидкой
+    calculateDiscountPrice(price, discount) {
+        return Math.round(price * (1 - discount / 100));
     }
 
-    // Восстановление из резервной копии
-    restoreFromBackup() {
+    // Показ уведомления
+    showNotification(message, type = 'info') {
         try {
-            const backupData = sessionStorage.getItem('cart_backup');
-            if (!backupData) return false;
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px; max-width: 90%;';
+            notification.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>${message}</span>
+                    <button type="button" class="btn-close" onclick="this.parentElement.parentElement.remove()"></button>
+                </div>
+            `;
             
-            const backup = JSON.parse(backupData);
-            if (this.validateCartData(backup)) {
-                cart = backup.cart;
-                currentDiscount = backup.discount;
-                return true;
-            }
-            return false;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 3000);
         } catch (error) {
-            console.error('Ошибка восстановления из резервной копии:', error);
-            return false;
+            console.error('Ошибка показа уведомления:', error);
         }
     }
 }
@@ -370,33 +366,5 @@ function clearCartStorage() {
 function getCartInfo() {
     return cartStorage.getCartInfo();
 }
-
-// Функция для проверки состояния хранилища
-function checkStorageStatus() {
-    try {
-        const testKey = 'storage_test';
-        localStorage.setItem(testKey, 'test');
-        localStorage.removeItem(testKey);
-        return true;
-    } catch (error) {
-        console.error('LocalStorage недоступен:', error);
-        showNotification('LocalStorage недоступен. Данные корзины не будут сохраняться.', 'warning');
-        return false;
-    }
-}
-
-// Вспомогательная функция для расчета цены со скидкой
-function calculateDiscountPrice(price, discount) {
-    return Math.round(price * (1 - discount / 100));
-}
-
-// Инициализация при загрузке
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        if (typeof cartStorage !== 'undefined' && typeof cartStorage.init === 'function') {
-            cartStorage.init();
-        }
-    }, 500);
-});
 
 console.log('Модуль сохранения корзины загружен');

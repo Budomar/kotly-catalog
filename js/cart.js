@@ -306,17 +306,17 @@ const cartFunctions = {
                             <div class="col-6 col-md-2 mt-2 mt-md-0">
                                 <div class="quantity-control d-flex align-items-center">
                                     <button class="btn btn-sm btn-outline-secondary quantity-btn" 
-                                            onclick="updateCartItem('${item.Артикул}', ${item.quantity - 1})"
+                                            onclick="cartFunctions.updateCartItem('${item.Артикул}', ${item.quantity - 1})"
                                             ${item.quantity <= 1 ? 'disabled' : ''}>
                                         <i class="bi bi-dash"></i>
                                     </button>
                                     <input type="number" class="form-control form-control-sm quantity-input mx-1" 
                                            value="${item.quantity}" 
-                                           onchange="updateCartItem('${item.Артикул}', this.value)" 
+                                           onchange="cartFunctions.updateCartItem('${item.Артикул}', this.value)" 
                                            min="1" max="${maxQuantity}"
                                            style="width: 50px; text-align: center;">
                                     <button class="btn btn-sm btn-outline-secondary quantity-btn" 
-                                            onclick="updateCartItem('${item.Артикул}', ${item.quantity + 1})"
+                                            onclick="cartFunctions.updateCartItem('${item.Артикул}', ${item.quantity + 1})"
                                             ${item.quantity >= maxQuantity ? 'disabled' : ''}>
                                         <i class="bi bi-plus"></i>
                                     </button>
@@ -325,7 +325,7 @@ const cartFunctions = {
                             <div class="col-6 col-md-2 mt-2 mt-md-0 text-end">
                                 <div class="fw-bold mb-1">${itemTotal.toLocaleString('ru-RU')} руб.</div>
                                 <button class="btn btn-sm btn-outline-danger" 
-                                        onclick="removeFromCart('${item.Артикул}')"
+                                        onclick="cartFunctions.removeFromCart('${item.Артикул}')"
                                         title="Удалить из корзины">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -440,9 +440,15 @@ const cartFunctions = {
     }
 };
 
-// Делаем функции глобальными
-Object.keys(cartFunctions).forEach(key => {
-    window[key] = cartFunctions[key];
-});
+// Делаем функции глобальными - ИСПРАВЛЕННАЯ ЧАСТЬ!
+window.addToCart = cartFunctions.addToCart;
+window.updateCartItem = cartFunctions.updateCartItem;
+window.removeFromCart = cartFunctions.removeFromCart;
+window.updateCartBadge = cartFunctions.updateCartBadge;
+window.updateCart = cartFunctions.updateCart;
+window.clearCart = cartFunctions.clearCart;
+window.sendRequest = cartFunctions.sendRequest;
+window.calculateDiscountPrice = cartFunctions.calculateDiscountPrice;
+window.showNotification = cartFunctions.showNotification;
 
 console.log('Функции корзины загружены');

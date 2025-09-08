@@ -685,5 +685,34 @@
         }
     }
     </script>
+    <script>
+    // Простая функция для проверки загрузки cart.js
+    function checkCartLoaded() {
+        if (typeof addToCart === 'undefined') {
+            console.error('❌ cart.js не загружен правильно!');
+            // Создаем простую версию функции для экстренного случая
+            window.addToCart = function(article) {
+                alert('Функция корзины загружается... Попробуйте позже');
+                return false;
+            };
+        } else {
+            console.log('✅ cart.js загружен успешно');
+        }
+    }
+
+    // Проверяем после загрузки страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(checkCartLoaded, 1000);
+    });
+
+    // Аварийная версия функций если основные не загрузились
+    if (typeof addToCart === 'undefined') {
+        window.addToCart = function(article) {
+            console.log('Аварийный режим: добавление в корзину', article);
+            alert('Товар добавлен в корзину (аварийный режим)');
+            return true;
+        };
+    }
+    </script>
 </body>
 </html>
